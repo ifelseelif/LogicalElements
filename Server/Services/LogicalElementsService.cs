@@ -1,78 +1,81 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using Common;
 using Server.Models;
+using Server.Session;
 
 namespace Server.Services
 {
     public class LogicalElementsService : ILogicalElementsService
     {
-        private List<Element> _elements;
+        private readonly ISessionStore _sessionStore;
 
-        public LogicalElementsService()
+        public LogicalElementsService(ISessionStore sessionStore)
         {
-            _elements = new List<Element>();
+            _sessionStore = sessionStore;
         }
 
-        public string AddElement(ElemType elemType)
+        public string AddElement(ElemType elemType, string connectionId)
         {
-            var id = _elements.Count;
+            var elements = _sessionStore.GetCachedList(connectionId);
+            var id = elements.Count;
             var elem = new LogicalElement(id, elemType);
-            _elements.Add(elem);
+            elements.Add(elem);
+            _sessionStore.SetCachedList(connectionId, elements);
             return "created " + elem;
         }
 
-        public string SetValueForElement(string name, bool value)
+        public string SetValueForElement(string name, bool value, string connectionId)
         {
-            foreach (var element in _elements)
+            var elements = _sessionStore.GetCachedList(connectionId);
+            foreach (var element in elements)
             {
-                if (element is ValueElement valueElement && valueElement.Name == name)
-                {
-                    valueElement.Value = value;
-                    return "ok";
-                }
+                if (element is not ValueElement valueElement || valueElement.Name != name) continue;
+                valueElement.Value = value;
+                return "ok";
             }
 
             return "not found";
         }
 
-        public string AddIO(bool isInput, string name)
+        public string AddIO(bool isInput, string name, string connectionId)
         {
-            var element = new ValueElement(_elements.Count, name, isInput);
-            _elements.Add(element);
+            var elements = _sessionStore.GetCachedList(connectionId);
+            var element = new ValueElement(elements.Count, name, isInput);
+            elements.Add(element);
+            _sessionStore.SetCachedList(connectionId, elements);
             return "created" + element;
         }
 
-        public string AddConnection(int idOfInput, int idOfOutput)
+        public string AddConnection(int idOfInput, int idOfOutput, string connectionId)
         {
-            var firstElement = _elements[idOfInput];
-            var secondElement = _elements[idOfOutput];
+            var elements = _sessionStore.GetCachedList(connectionId);
+            var firstElement = elements[idOfInput];
+            var secondElement = elements[idOfOutput];
             secondElement.AddInput(firstElement);
             return "ok";
         }
 
-        public string Show(int id)
+        public string Show(int id, string connectionId)
         {
-            return id < _elements.Count ? _elements[id].Show() : "not found";
+            var elements = _sessionStore.GetCachedList(connectionId);
+            return id < elements.Count ? elements[id].Show() : "not found";
         }
 
-        public string Print()
+        public string Print(string connectionId)
         {
+            var elements = _sessionStore.GetCachedList(connectionId);
             var result = new StringBuilder();
-            foreach (var element in _elements)
+            foreach (var element in elements)
             {
-                if (element is ValueElement { IsInput: false } valueElement)
+                if (element is not ValueElement { IsInput: false } valueElement) continue;
+                try
                 {
-                    try
-                    {
-                        result.Append($"{valueElement.Name} - {valueElement.Result()}\n");
-                    }
-                    catch (Exception)
-                    {
-                        return "Can't calculate";
-                    }
+                    result.Append($"{valueElement.Name} - {valueElement.Result()}\n");
+                }
+                catch (Exception)
+                {
+                    return "Can't calculate";
                 }
             }
 

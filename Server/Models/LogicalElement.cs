@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 using Common;
+using Server.Exceptions;
 
 namespace Server.Models
 {

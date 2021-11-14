@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Server.Services;
+using Server.Session;
 
 namespace Server
 {
@@ -18,9 +19,9 @@ namespace Server
 
         public void ConfigureServices(IServiceCollection services)
         {
-
             services.AddControllers();
-            services.AddSingleton<ILogicalElementsService, LogicalElementsService>();
+            services.AddScoped<ILogicalElementsService, LogicalElementsService>();
+            services.AddSingleton<ISessionStore, SessionStore>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

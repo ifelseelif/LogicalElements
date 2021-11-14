@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Server
+namespace Server.Exceptions
 {
     public class CalculationError : Exception
     {
