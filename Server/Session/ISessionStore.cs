@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Server.Models;
+using Server.Models.domain;
 
 namespace Server.Session
 {

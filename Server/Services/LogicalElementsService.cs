@@ -1,85 +1,111 @@
 ﻿using System;
-using System.Text;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Common;
-using Server.Models;
-using Server.Session;
+using Server.Db.models;
+using Server.Db.Repository.Interface;
+using Server.Models.domain;
+using Server.Services.Interfaces;
+using Element = Server.Db.models.Element;
+using DomainElement = Server.Models.domain.Element;
 
 namespace Server.Services
 {
     public class LogicalElementsService : ILogicalElementsService
     {
-        private readonly ISessionStore _sessionStore;
+        private readonly IElementRepository _elementRepository;
+        private readonly IConnectionRepository _connectionRepository;
 
-        public LogicalElementsService(ISessionStore sessionStore)
+        public LogicalElementsService(IElementRepository elementRepository, IConnectionRepository connectionRepository)
         {
-            _sessionStore = sessionStore;
+            _elementRepository = elementRepository;
+            _connectionRepository = connectionRepository;
         }
 
-        public string AddElement(ElemType elemType, string connectionId)
+        public async Task<string> AddElement(ElemType elemType, Guid userId)
         {
-            var elements = _sessionStore.GetCachedList(connectionId);
-            var id = elements.Count;
+            var id = await _elementRepository.GetMaxId() + 1;
             var elem = new LogicalElement(id, elemType);
-            elements.Add(elem);
-            _sessionStore.SetCachedList(connectionId, elements);
+            await _elementRepository.AddElement(elem, userId);
             return "created " + elem;
         }
 
-        public string SetValueForElement(string name, bool value, string connectionId)
+        public async Task<string> SetValueForElement(string name, bool value, Guid userId)
         {
-            var elements = _sessionStore.GetCachedList(connectionId);
-            foreach (var element in elements)
-            {
-                if (element is not ValueElement valueElement || valueElement.Name != name) continue;
-                valueElement.Value = value;
-                return "ok";
-            }
-
-            return "not found";
+            await _elementRepository.SetValueForElement(name, value, userId);
+            return await _elementRepository.SetValueForElement(name, value, userId);
         }
 
-        public string AddIO(bool isInput, string name, string connectionId)
+        public async Task<string> AddIO(bool isInput, string name, Guid userId)
         {
-            var elements = _sessionStore.GetCachedList(connectionId);
-            var element = new ValueElement(elements.Count, name, isInput);
-            elements.Add(element);
-            _sessionStore.SetCachedList(connectionId, elements);
+            var id = await _elementRepository.GetMaxId() + 1;
+            var element = new ValueElement(id, name, isInput);
+            await _elementRepository.AddElement(element, userId);
             return "created" + element;
         }
 
-        public string AddConnection(int idOfInput, int idOfOutput, string connectionId)
+        public async Task<string> AddConnection(int idOfInput, int idOfOutput, Guid userId)
         {
-            var elements = _sessionStore.GetCachedList(connectionId);
-            var firstElement = elements[idOfInput];
-            var secondElement = elements[idOfOutput];
-            secondElement.AddInput(firstElement);
+            var connection = new Connection
+            {
+                ElementIdIn = idOfInput,
+                ElementIdOut = idOfOutput,
+                UserId = userId
+            };
+            await _connectionRepository.AddConnection(connection);
             return "ok";
         }
 
-        public string Show(int id, string connectionId)
+        public async Task<string> Show(int elementId, Guid userId)
         {
-            var elements = _sessionStore.GetCachedList(connectionId);
-            return id < elements.Count ? elements[id].Show() : "not found";
+            var elementGraph = await GetElementGraph(userId);
+            var element = elementGraph.FirstOrDefault(element => element.Id == elementId);
+            return element == null ? "not found" : element.Show();
         }
 
-        public string Print(string connectionId)
+        public async Task<string> Print(Guid userId)
         {
-            var elements = _sessionStore.GetCachedList(connectionId);
-            var result = new StringBuilder();
-            foreach (var element in elements)
-            {
-                if (element is not ValueElement { IsInput: false } valueElement) continue;
-                try
-                {
-                    result.Append($"{valueElement.Name} - {valueElement.Result()}\n");
-                }
-                catch (Exception)
-                {
-                    return "Can't calculate";
-                }
-            }
+            var elementGraph = await GetElementGraph(userId);
+            var outputElements = elementGraph
+                .Where(elem => elem.ElemType == ElemType.value)
+                .Select(elem => elem as ValueElement)
+                .Where(elem => elem.IsInput == false)
+                .Select(elem => elem.Name + " " + elem.Result())
+                .ToList();
 
-            return result.ToString();
+            return string.Join(" ", outputElements);
+        }
+
+        private async Task<List<DomainElement>> GetElementGraph(Guid userId)
+        {
+            var elements = (await _elementRepository.GetAllElementsByUserId(userId)).Select(ConvertElem).ToList();
+            var connections = await _connectionRepository.GetAllConnectionsByUserId(userId);
+            connections.ForEach(connection => Connect(connection, elements));
+
+            return elements;
+        }
+
+        private DomainElement ConvertElem(Element elem)
+        {
+            if (elem.ElemType == ElemType.value)
+                return new ValueElement
+                (
+                    elem.Id,
+                    elem.Value,
+                    elem.Name,
+                    elem.IsInput
+                );
+            return new LogicalElement(elem.Id, elem.ElemType);
+        }
+
+        private void Connect(Connection connection, IList<DomainElement> elements)
+        {
+            var inElement = elements.FirstOrDefault(elem => elem.Id == connection.ElementIdIn);
+            var outElement = elements.FirstOrDefault(elem => elem.Id == connection.ElementIdOut);
+            if (inElement == null || outElement == null) return;
+
+            outElement.AddInput(inElement);
         }
     }
 }

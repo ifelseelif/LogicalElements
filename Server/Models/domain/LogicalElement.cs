@@ -1,34 +1,36 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using Common;
 using Server.Exceptions;
 
-namespace Server.Models
+namespace Server.Models.domain
 {
     public class LogicalElement : Element
     {
         private List<Element> InputElements { get; }
 
-        private readonly ElemType _elemType;
+        public ElemType ElemType { get; }
 
-        public LogicalElement(int id, ElemType elemType) : base(id)
+        public LogicalElement(int id, ElemType elemType)
         {
+            Id = id;
             InputElements = new List<Element>();
-            _elemType = elemType;
+            ElemType = elemType;
         }
 
         public override void AddInput(Element element)
         {
             if (InputElements.Count >= 2) return;
-            if (_elemType == ElemType.not && InputElements.Count >= 1) return;
+            if (ElemType == ElemType.not && InputElements.Count >= 1) return;
             InputElements.Add(element);
         }
 
         public override bool Result()
         {
-            if (_elemType == ElemType.not) return !InputElements[0].Result();
+            if (ElemType == ElemType.not) return !InputElements[0].Result();
             if (InputElements.Count != 2) throw new CalculationError();
-            return _elemType switch
+            return ElemType switch
             {
                 ElemType.or => InputElements[0].Result() | InputElements[1].Result(),
                 ElemType.and => InputElements[0].Result() & InputElements[1].Result(),
@@ -51,7 +53,7 @@ namespace Server.Models
 
         public override string ToString()
         {
-            return $"{Id}:{_elemType.ToString()}";
+            return $"{Id}:{ElemType.ToString()}";
         }
     }
 }

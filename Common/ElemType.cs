@@ -5,6 +5,7 @@
         and,
         or,
         not,
-        xor
+        xor,
+        value
     }
 }

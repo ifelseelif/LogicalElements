@@ -35,10 +35,20 @@ namespace Client
                         Id = id
                     };
                 }
+                
+                if (splitInput[0] == "login")
+                {
+                    return new Message
+                    {
+                        CommandType = CommandType.Login,
+                        Name = splitInput[1]
+                    };
+                }
 
-                var secondArgument = splitInput[1].Split("-");
+                var secondArgument = splitInput[1].Split("--");
                 if (splitInput[0] == "connect" && secondArgument.Length == 2 &&
-                    int.TryParse(secondArgument[0], out var inputId) && int.TryParse(secondArgument[1], out var outputId))
+                    int.TryParse(secondArgument[0], out var inputId) &&
+                    int.TryParse(secondArgument[1], out var outputId))
                 {
                     return new Message
                     {
@@ -47,6 +57,7 @@ namespace Client
                         OutputId = outputId
                     };
                 }
+                
             }
 
             if (splitInput.Length == 3)

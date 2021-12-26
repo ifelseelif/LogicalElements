@@ -1,10 +1,14 @@
-﻿using Common;
+﻿using System;
+using System.Threading.Tasks;
+using Common;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Server.Services;
+using Server.Services.Interfaces;
 
 namespace Server.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("/logicalelements")]
     public class LogicalElementsController : Controller
     {
@@ -16,41 +20,46 @@ namespace Server.Controllers
         }
 
         [HttpPost("elements")]
-        public string AddElement([FromQuery] ElemType elemType)
+        public Task<string> AddElement([FromQuery] ElemType elemType)
         {
-            return _logicalElementsService.AddElement(elemType, HttpContext.Connection.RemoteIpAddress?.ToString());
+            Guid.TryParse(User.Identity?.Name, out var id);
+            return _logicalElementsService.AddElement(elemType, id);
         }
 
         [HttpPut("elements")]
-        public string SetValueForElement([FromQuery] string name, [FromQuery] bool value)
+        public Task<string> SetValueForElement([FromQuery] string name, [FromQuery] bool value)
         {
-            return _logicalElementsService.SetValueForElement(name, value,
-                HttpContext.Connection.RemoteIpAddress?.ToString());
+            Guid.TryParse(User.Identity?.Name, out var id);
+            return _logicalElementsService.SetValueForElement(name, value, id);
         }
 
         [HttpPost("io")]
-        public string AddIO([FromQuery] bool isInput, [FromQuery] string name)
+        public Task<string> AddIO([FromQuery] bool isInput, [FromQuery] string name)
         {
-            return _logicalElementsService.AddIO(isInput, name, HttpContext.Session.Id);
+            Guid.TryParse(User.Identity?.Name, out var id);
+            return _logicalElementsService.AddIO(isInput, name, id);
         }
 
         [HttpPost("connection")]
-        public string AddConnection([FromQuery] int idOfInput, [FromQuery] int idOfOutput)
+        public Task<string> AddConnection([FromQuery] int idOfInput, [FromQuery] int idOfOutput)
         {
-            return _logicalElementsService.AddConnection(idOfInput, idOfOutput,
-                HttpContext.Connection.RemoteIpAddress?.ToString());
+            Guid.TryParse(User.Identity?.Name, out var id);
+            return _logicalElementsService.AddConnection(idOfInput, idOfOutput
+                , id);
         }
 
         [HttpGet("{id}")]
-        public string Show([FromRoute] int id)
+        public Task<string> Show([FromRoute] int id)
         {
-            return _logicalElementsService.Show(id, HttpContext.Connection.RemoteIpAddress?.ToString());
+            Guid.TryParse(User.Identity?.Name, out var userId);
+            return _logicalElementsService.Show(id, userId);
         }
 
         [HttpGet("result")]
-        public string Print()
+        public Task<string> Print()
         {
-            return _logicalElementsService.Print(HttpContext.Connection.RemoteIpAddress?.ToString());
+            Guid.TryParse(User.Identity?.Name, out var id);
+            return _logicalElementsService.Print(id);
         }
     }
 }

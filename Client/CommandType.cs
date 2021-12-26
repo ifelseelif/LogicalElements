@@ -7,6 +7,7 @@
         Show,
         AddIO,
         Connection,
-        Set
+        Set,
+        Login
     }
 }
