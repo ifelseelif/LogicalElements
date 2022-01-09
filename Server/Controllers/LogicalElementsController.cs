@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Common;
 using Microsoft.AspNetCore.Authorization;
@@ -22,44 +24,55 @@ namespace Server.Controllers
         [HttpPost("elements")]
         public Task<string> AddElement([FromQuery] ElemType elemType)
         {
-            Guid.TryParse(User.Identity?.Name, out var id);
-            return _logicalElementsService.AddElement(elemType, id);
+
+            var userId = GetIdentifier();
+            return _logicalElementsService.AddElement(elemType, userId);
         }
 
         [HttpPut("elements")]
         public Task<string> SetValueForElement([FromQuery] string name, [FromQuery] bool value)
         {
-            Guid.TryParse(User.Identity?.Name, out var id);
-            return _logicalElementsService.SetValueForElement(name, value, id);
+
+            var userId = GetIdentifier();
+            return _logicalElementsService.SetValueForElement(name, value, userId);
         }
 
         [HttpPost("io")]
         public Task<string> AddIO([FromQuery] bool isInput, [FromQuery] string name)
         {
-            Guid.TryParse(User.Identity?.Name, out var id);
-            return _logicalElementsService.AddIO(isInput, name, id);
+
+            var userId = GetIdentifier();
+            return _logicalElementsService.AddIO(isInput, name, userId);
         }
 
         [HttpPost("connection")]
         public Task<string> AddConnection([FromQuery] int idOfInput, [FromQuery] int idOfOutput)
         {
-            Guid.TryParse(User.Identity?.Name, out var id);
-            return _logicalElementsService.AddConnection(idOfInput, idOfOutput
-                , id);
+
+            var userId = GetIdentifier();
+            return _logicalElementsService.AddConnection(idOfInput, idOfOutput, userId);
         }
 
         [HttpGet("{id}")]
         public Task<string> Show([FromRoute] int id)
         {
-            Guid.TryParse(User.Identity?.Name, out var userId);
+
+            var userId = GetIdentifier();
             return _logicalElementsService.Show(id, userId);
         }
 
         [HttpGet("result")]
         public Task<string> Print()
         {
-            Guid.TryParse(User.Identity?.Name, out var id);
-            return _logicalElementsService.Print(id);
+            var userId = GetIdentifier();
+            return _logicalElementsService.Print(GetIdentifier());
+        }
+
+        private Guid GetIdentifier()
+        {
+            var id = User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+            Guid.TryParse(id, out var userId);
+            return userId;
         }
     }
 }

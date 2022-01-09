@@ -25,10 +25,9 @@ namespace Server.Services
 
         public async Task<string> AddElement(ElemType elemType, Guid userId)
         {
-            var id = await _elementRepository.GetMaxId() + 1;
-            var elem = new LogicalElement(id, elemType);
-            await _elementRepository.AddElement(elem, userId);
-            return "created " + elem;
+            var elem = new LogicalElement(elemType);
+            var cratedElem = await _elementRepository.AddElement(elem, userId);
+            return "created " + ConvertElem(cratedElem);
         }
 
         public async Task<string> SetValueForElement(string name, bool value, Guid userId)
@@ -39,10 +38,9 @@ namespace Server.Services
 
         public async Task<string> AddIO(bool isInput, string name, Guid userId)
         {
-            var id = await _elementRepository.GetMaxId() + 1;
-            var element = new ValueElement(id, name, isInput);
-            await _elementRepository.AddElement(element, userId);
-            return "created" + element;
+            var element = new ValueElement(name, isInput);
+            var cratedElem = await _elementRepository.AddElement(element, userId);
+            return "created" + ConvertElem(cratedElem);
         }
 
         public async Task<string> AddConnection(int idOfInput, int idOfOutput, Guid userId)
@@ -91,12 +89,17 @@ namespace Server.Services
             if (elem.ElemType == ElemType.value)
                 return new ValueElement
                 (
-                    elem.Id,
                     elem.Value,
                     elem.Name,
                     elem.IsInput
-                );
-            return new LogicalElement(elem.Id, elem.ElemType);
+                )
+                {
+                    Id = elem.Id
+                };
+            return new LogicalElement(elem.ElemType)
+            {
+                Id = elem.Id
+            };
         }
 
         private void Connect(Connection connection, IList<DomainElement> elements)

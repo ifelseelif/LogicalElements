@@ -1,16 +1,18 @@
+using System.Text;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 using Server.Db;
 using Server.Db.Repository;
 using Server.Db.Repository.Interface;
+using Server.Models;
 using Server.Services;
 using Server.Services.Interfaces;
-using Server.Session;
+
 
 namespace Server
 {
@@ -40,7 +42,25 @@ namespace Server
             services.AddTransient<IElementRepository, ElementRepository>();
             services.AddTransient<IConnectionRepository, ConnectionRepository>();
 
-            services.AddSingleton<ISessionStore, SessionStore>();
+            services.Configure<TokenOptions>(Configuration.GetSection(TokenOptions.SectionName));
+
+            services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = "JwtBearer";
+                    options.DefaultChallengeScheme = "JwtBearer";
+                })
+                .AddJwtBearer("JwtBearer", options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration
+                            .GetSection(TokenOptions.SectionName).GetSection("SecretKey").Value)),
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        ValidateLifetime = false
+                    };
+                });
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

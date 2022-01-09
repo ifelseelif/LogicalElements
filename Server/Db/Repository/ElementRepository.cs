@@ -27,7 +27,7 @@ namespace Server.Db.Repository
                 .ToListAsync();
         }
 
-        public async Task AddElement(LogicalElement elem, Guid userId)
+        public async Task<Element> AddElement(LogicalElement elem, Guid userId)
         {
             var element = new Element
             {
@@ -36,9 +36,10 @@ namespace Server.Db.Repository
             };
 
             await AddElement(element);
+            return element;
         }
 
-        public async Task AddElement(ValueElement elem, Guid userId)
+        public async Task<Element> AddElement(ValueElement elem, Guid userId)
         {
             var element = new Element
             {
@@ -51,6 +52,7 @@ namespace Server.Db.Repository
             };
 
             await AddElement(element);
+            return element;
         }
 
         public async Task<string> SetValueForElement(string name, bool value, Guid userId)

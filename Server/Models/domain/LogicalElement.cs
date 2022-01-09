@@ -12,9 +12,8 @@ namespace Server.Models.domain
 
         public ElemType ElemType { get; }
 
-        public LogicalElement(int id, ElemType elemType)
+        public LogicalElement(ElemType elemType)
         {
-            Id = id;
             InputElements = new List<Element>();
             ElemType = elemType;
         }

@@ -1,46 +1,68 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using Server.Models.request;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using Server.Models;
 using Server.Services.Interfaces;
 
 namespace Server.Controllers
 {
-    [Route("/auth")]
+    [ApiController]
+    [Route("auth")]
     public class AuthController : Controller
     {
+        private readonly IOptions<TokenOptions> _tokenOption;
         private readonly IAuthService _authService;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IOptions<TokenOptions> tokenOption, IAuthService authService)
         {
+            _tokenOption = tokenOption;
             _authService = authService;
         }
 
         [HttpPost]
-        public async Task<string> Register([FromQuery, Required] string login)
+        [Route("register")]
+        public async Task<IActionResult> Register([FromQuery, Required] string login,
+            [FromQuery, Required] string password)
         {
-            var id = await _authService.ContainsUser(login);
-            if (id == Guid.Empty)
-                id = await _authService.Register(login);
-            if (id == Guid.Empty) return "Can't create user";
-            await Authenticate(id);
-            return "ok";
+            var operationResult = await _authService.Register(login, password);
+            return operationResult.ToResponseMessage();
         }
 
-        private async Task Authenticate(Guid userId)
+        [HttpPost]
+        [Route("login")]
+        public async Task<IActionResult> Login([FromQuery, Required] string login,
+            [FromQuery, Required] string password)
         {
+            ;
+            var result = await _authService.Login(login, password);
+            if (!result.IsSuccess())
+            {
+                return result.ToResponseMessage();
+            }
+
             var claims = new List<Claim>
             {
-                new(ClaimsIdentity.DefaultNameClaimType, userId.ToString())
+                new(ClaimTypes.Name, result.Value.Username),
+                new(ClaimTypes.NameIdentifier, result.Value.Id.ToString())
             };
-            var id = new ClaimsIdentity(claims, "ApplicationCookie", ClaimsIdentity.DefaultNameClaimType,
-                ClaimsIdentity.DefaultRoleClaimType);
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(id));
+
+            var token = new JwtSecurityToken(
+                new JwtHeader(new SigningCredentials(
+                    new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_tokenOption.Value.SecretKey)),
+                    SecurityAlgorithms.HmacSha256)), new JwtPayload(claims));
+
+            var response = new
+            {
+                Token = new JwtSecurityTokenHandler().WriteToken(token)
+            };
+
+            return Ok(response);
         }
     }
 }

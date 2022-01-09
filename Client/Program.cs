@@ -12,6 +12,14 @@ namespace Client
             var flag = true;
 
             Console.WriteLine("Hello, write your commands");
+            Console.WriteLine("Commands: ");
+            Console.WriteLine("login/register 'login' 'password'");
+            Console.WriteLine("print");
+            Console.WriteLine("add 'elemType'");
+            Console.WriteLine("show 'id'");
+            Console.WriteLine("connect 'id'--'id'");
+            Console.WriteLine("add 'in/out' 'name'");
+            Console.WriteLine("set 'name' 'true/false'");
             while (flag)
             {
                 Console.Write(">");

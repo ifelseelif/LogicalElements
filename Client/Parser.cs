@@ -35,15 +35,6 @@ namespace Client
                         Id = id
                     };
                 }
-                
-                if (splitInput[0] == "login")
-                {
-                    return new Message
-                    {
-                        CommandType = CommandType.Login,
-                        Name = splitInput[1]
-                    };
-                }
 
                 var secondArgument = splitInput[1].Split("--");
                 if (splitInput[0] == "connect" && secondArgument.Length == 2 &&
@@ -57,7 +48,7 @@ namespace Client
                         OutputId = outputId
                     };
                 }
-                
+
             }
 
             if (splitInput.Length == 3)
@@ -79,6 +70,26 @@ namespace Client
                         CommandType = CommandType.Set,
                         Name = splitInput[1],
                         Value = value
+                    };
+                }
+
+                if (splitInput[0] == "login")
+                {
+                    return new Message
+                    {
+                        CommandType = CommandType.Login,
+                        Name = splitInput[1],
+                        Password = splitInput[2]
+                    };
+                }
+
+                if (splitInput[0] == "register")
+                {
+                    return new Message
+                    {
+                        CommandType = CommandType.Register,
+                        Name = splitInput[1],
+                        Password = splitInput[2]
                     };
                 }
             }

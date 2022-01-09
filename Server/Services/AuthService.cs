@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Server.Db.models;
 using Server.Db.Repository.Interface;
-using Server.Models.request;
+using Server.Models;
 using Server.Services.Interfaces;
 
 namespace Server.Services
@@ -15,14 +16,14 @@ namespace Server.Services
             _userRepository = userRepository;
         }
 
-        public Task<Guid> Register(string username)
+        public Task<OperationResult> Register(string username, string password)
         {
-            return _userRepository.AddUser(username);
+            return _userRepository.AddUser(username, password);
         }
 
-        public Task<Guid> ContainsUser(string username)
+        public Task<OperationResult<User>> Login(string login, string password)
         {
-            return _userRepository.GetUserId(username);
+            return _userRepository.GetUserId(login, password);
         }
     }
 }

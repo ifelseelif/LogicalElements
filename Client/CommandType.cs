@@ -8,6 +8,7 @@
         AddIO,
         Connection,
         Set,
-        Login
+        Login,
+        Register
     }
 }

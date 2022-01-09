@@ -13,5 +13,6 @@ namespace Client
         public int OutputId { get; set; }
         public int InputId { get; set; }
         public bool Value { get; set; }
+        public string Password { get; set; }
     }
 }

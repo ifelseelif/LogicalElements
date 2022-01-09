@@ -10,15 +10,14 @@ namespace Server.Models.domain
 
         private Element _inputElement;
 
-        public ValueElement(int id, string name, bool isInput)
+        public ValueElement(string name, bool isInput)
         {
-            Id = id;
             ElemType = ElemType.value;
             IsInput = isInput;
             Name = name;
         }
 
-        public ValueElement(int id, bool value, string name, bool isInput) : this(id, name, isInput)
+        public ValueElement(bool value, string name, bool isInput) : this(name, isInput)
         {
             Value = value;
         }
@@ -41,6 +40,7 @@ namespace Server.Models.domain
 
         public override bool Result()
         {
+            if (!IsInput && _inputElement == null) return false;
             return IsInput ? Value : _inputElement.Result();
         }
     }

@@ -2,8 +2,12 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.WebUtilities;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using Formatting = System.Xml.Formatting;
 
 namespace Client
 {
@@ -16,8 +20,16 @@ namespace Client
         private const string PrintPath = "/result";
         private const string IOPath = "/io";
         private const string Elements = "/elements";
-        private bool isLogin;
+        private string token = "";
         private HttpClient _httpClient;
+
+        private JsonSerializerSettings _jsonSettings = new JsonSerializerSettings
+        {
+            ContractResolver = new DefaultContractResolver
+            {
+                NamingStrategy = new CamelCaseNamingStrategy()
+            }
+        };
 
         public HttpSender()
         {
@@ -29,11 +41,15 @@ namespace Client
 
         public async Task Send(Message message)
         {
-            if (!isLogin && message.CommandType != CommandType.Login)
+            if (string.IsNullOrEmpty(token) && message.CommandType != CommandType.Login &&
+                message.CommandType != CommandType.Register)
             {
                 Console.WriteLine("Need login");
                 return;
             }
+
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", token);
 
             string path = "";
             HttpMethod httpMethod = null;
@@ -75,8 +91,17 @@ namespace Client
                     break;
                 case CommandType.Login:
                     controllerPath = AuthControllerPath;
+                    path = "/login";
                     httpMethod = HttpMethod.Post;
                     queryString.Add("login", message.Name);
+                    queryString.Add("password", message.Password);
+                    break;
+                case CommandType.Register:
+                    controllerPath = AuthControllerPath;
+                    path = "/register";
+                    httpMethod = HttpMethod.Post;
+                    queryString.Add("login", message.Name);
+                    queryString.Add("password", message.Password);
                     break;
                 default:
                     Console.WriteLine("Something went wrong");
@@ -88,8 +113,13 @@ namespace Client
             var result = _httpClient.Send(request);
             if (result.StatusCode == HttpStatusCode.OK)
             {
-                isLogin = true;
                 var responseMessage = await result.Content.ReadAsStringAsync();
+                if (CommandType.Login == message.CommandType)
+                {
+                    token = JsonConvert.DeserializeObject<TokenResponse>(responseMessage, _jsonSettings).Token;
+                    return;
+                }
+
                 Console.WriteLine(responseMessage);
             }
         }
